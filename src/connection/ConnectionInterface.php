@@ -10,6 +10,7 @@ interface ConnectionInterface {
     public function write($key, $value);
     public function hmRead($key, array $fields = array());
     public function hmWrite($key, array $fields = array(), array $values = array());
+    public function hmRemove($key, array $fields = array());
     public function hScan($key, $match);
     public function getSlot($key);
     public function multiCmd(array $cmd = array());
