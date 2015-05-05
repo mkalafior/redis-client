@@ -117,4 +117,25 @@ class Phpredis implements ConnectionInterface
         return $hash & 0x3FFF;
     }
 
+    public function hmRead($key, array $fields = array())
+    {
+        // TODO: Implement hmRead() method.
+    }
+
+    public function hmWrite($key, array $fields = array(), array $values = array())
+    {
+        // TODO: Implement hmWrite() method.
+    }
+
+    public function hScan($key, $match)
+    {
+        // TODO: Implement hScan() method.
+    }
+
+    public function multiCmd(array $cmd = array())
+    {
+        // TODO: Implement multiCmd() method.
+    }
+
+
 }
