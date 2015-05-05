@@ -12,16 +12,40 @@ include_once('ConnectionInterface.php');
 
 use Redis\Algorithms;
 
+/**
+ * Class Phpiredis
+ * @package Redis\Connection
+ */
 class Phpiredis implements ConnectionInterface
 {
 
+    /**
+     * @var array
+     */
     protected static $connections = array();
+    /**
+     * @var Algorithms\AlgorithmsInterface
+     */
     protected $hashingInterface;
+    /**
+     * @var
+     */
     protected $startingPort;
+    /**
+     * @var
+     */
     protected $masterInstances;
 
+    /**
+     * @param $value
+     * @return bool
+     */
     private function checkIfMoved($value)
     {
+        if (!is_string($value)) {
+            return false;
+        }
+
         $msg = explode(" ", $value);
 
         if ($msg[0] === 'MOVED') {
@@ -32,6 +56,70 @@ class Phpiredis implements ConnectionInterface
         return false;
     }
 
+    /**
+     * @param $instance
+     * @param array $cmdRecs
+     * @return mixed
+     */
+    private function singleMultiCmd($instance, $cmdRecs = array())
+    {
+        $moved = false;
+
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
+            restore_error_handler();
+            $msg = explode(" ", $errstr);
+            if ($msg[1] === 'MOVED') {
+                $moved = $msg[2];
+            } else {
+                echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
+                die();
+            }
+        });
+
+        $order = array();
+        $cmd = array();
+        foreach ($cmdRecs as $r) {
+            $order[] = $r['order'];
+            $cmd[] = $r['cmd'];
+        }
+
+        $sort = function ($values) use ($order) {
+            $return = array();
+
+            foreach ($values as $idx => $value) {
+                $return[$order[$idx]] = $value;
+            }
+
+            return $return;
+        };
+
+        if ($instance && $value = phpiredis_multi_command_bs($instance, $cmd)) {
+            if (isset($value[0])) {
+                $moved = $this->checkIfMoved($value[0]);
+            }
+
+            if (!$moved) {
+                restore_error_handler();
+                return $sort($value);
+            }
+        }
+
+        if ($moved) {
+
+            $instance = $this->getInstanceByPort($moved);
+            if ($instance && $value = phpiredis_multi_command_bs($instance, $cmd)) {
+                restore_error_handler();
+                return $sort($value);
+            }
+
+        }
+    }
+
+    /**
+     * @param Algorithms\AlgorithmsInterface $hashingInterface
+     * @param $startingPort
+     * @param $masterInstances
+     */
     public function __construct(Algorithms\AlgorithmsInterface $hashingInterface, $startingPort, $masterInstances)
     {
         $this->hashingInterface = $hashingInterface;
@@ -39,6 +127,10 @@ class Phpiredis implements ConnectionInterface
         $this->masterInstances = $masterInstances;
     }
 
+    /**
+     * @param $port
+     * @return bool
+     */
     public function connect($port)
     {
         $conn = self::$connections;
@@ -52,6 +144,10 @@ class Phpiredis implements ConnectionInterface
         return $conn[$port] ?: false;
     }
 
+    /**
+     * @param $key
+     * @return bool
+     */
     public function read($key)
     {
         $moved = false;
@@ -88,6 +184,11 @@ class Phpiredis implements ConnectionInterface
         return false;
     }
 
+    /**
+     * @param $key
+     * @param $value
+     * @return bool
+     */
     public function write($key, $value)
     {
         $instance = $this->getInstanceBySlot(
@@ -123,6 +224,11 @@ class Phpiredis implements ConnectionInterface
         return false;
     }
 
+    /**
+     * @param $key
+     * @param array $fields
+     * @return bool
+     */
     public function hmRead($key, array $fields = array())
     {
         $moved = false;
@@ -164,6 +270,12 @@ class Phpiredis implements ConnectionInterface
         return false;
     }
 
+    /**
+     * @param $key
+     * @param array $fields
+     * @param array $values
+     * @return bool
+     */
     public function hmWrite($key, array $fields = array(), array $values = array())
     {
 
@@ -209,6 +321,11 @@ class Phpiredis implements ConnectionInterface
         return false;
     }
 
+    /**
+     * @param $key
+     * @param array $fields
+     * @return bool
+     */
     public function hmRemove($key, array $fields = array())
     {
         $moved = false;
@@ -250,18 +367,44 @@ class Phpiredis implements ConnectionInterface
         return false;
     }
 
+    /**
+     * @param $slot
+     * @param $startingPort
+     * @param $masterInstances
+     * @return bool
+     */
     public function getInstanceBySlot($slot, $startingPort, $masterInstances)
     {
         $instance = floor(($slot % 16384) / (16384 / $masterInstances));
         return $this->connect($startingPort + $instance);
     }
 
+    /**
+     * @param $slot
+     * @param $startingPort
+     * @param $masterInstance
+     * @return mixed
+     */
+    public function getPortBySlot($slot, $startingPort, $masterInstance)
+    {
+        return $startingPort + floor(($slot % 16384) / (16384 / $masterInstance));
+    }
+
+    /**
+     * @param $port
+     * @return bool
+     */
     public function getInstanceByPort($port)
     {
         return $this->connect($port);
     }
 
     //todo
+    /**
+     * @param $key
+     * @param $startingPort
+     * @return bool
+     */
     public function getInstanceBySlotMap($key, $startingPort)
     {
         $slot = $this->getSlot($key);
@@ -269,6 +412,10 @@ class Phpiredis implements ConnectionInterface
         return $this->connect($startingPort + $instance);
     }
 
+    /**
+     * @param $key
+     * @return int
+     */
     public function getSlot($key)
     {
 
@@ -281,6 +428,9 @@ class Phpiredis implements ConnectionInterface
         return $hash & 0x3FFF;
     }
 
+    /**
+     * @param $startingPort
+     */
     protected function getSlotMap($startingPort)
     {
         $instance = $this->getInstanceByPort($startingPort);
@@ -288,6 +438,11 @@ class Phpiredis implements ConnectionInterface
         //todo:
     }
 
+    /**
+     * @param $key
+     * @param $match
+     * @return mixed
+     */
     public function hScan($key, $match)
     {
         $instance = $this->getInstanceBySlot(
@@ -329,49 +484,36 @@ class Phpiredis implements ConnectionInterface
         }
     }
 
+    /**
+     * @param array $cmd
+     * @return array
+     */
     public function multiCmd(array $cmd = array())
     {
-        $moved = false;
+        $instances = array();
+        $values = array();
 
-        $instance = $this->getInstanceBySlot(
-            0,
-            $this->startingPort,
-            $this->masterInstances
-        );
-
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
-            restore_error_handler();
-            $msg = explode(" ", $errstr);
-            if ($msg[1] === 'MOVED') {
-                $moved = $msg[2];
-            } else {
-                echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
-                die();
-            }
-        });
-
-        if ($instance && $value = phpiredis_multi_command_bs($instance, $cmd)) {
-            if (isset($value[0])) {
-                $moved = $this->checkIfMoved($value[0]);
-            }
-
-            if (!$moved) {
-                restore_error_handler();
-                return $value;
-            }
+        $order = 0;
+        foreach ($cmd as $c) {
+            $key = $c[1];
+            $slot = $this->getSlot($key);
+            $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
+            $instances[$port] = isset($instances[$port]) ? $instances[$port] : array();
+            $instances[$port][] = array('order' => $order++, 'cmd' => $c);
         }
 
-        if ($moved) {
-
-            $instance = $this->getInstanceByPort($moved);
-            if ($instance && $value = phpiredis_multi_command_bs($instance, $cmd)) {
-                restore_error_handler();
-                return $value;
-            }
-
+        foreach ($instances as $port => $_cmd) {
+            $instance = $this->getInstanceByPort($port);
+            $tmp = $this->singleMultiCmd($instance, $_cmd);
+            $values = array_merge($values, $tmp);
         }
+
+        return $values;
     }
 
+    /**
+     *
+     */
     public static function close()
     {
         $conn = self::$connections;
