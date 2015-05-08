@@ -336,7 +336,11 @@ class Phpiredis implements ConnectionInterface
             $this->masterInstances
         );
 
-        $tmp = array('HDEL', $key);
+        if(count($fields)>0){
+            $tmp = array('HDEL', $key);
+        }else{
+            $tmp = array('DEL', $key);
+        }
         while ($r = array_shift($fields)) {
             $tmp[] = $r;
         }

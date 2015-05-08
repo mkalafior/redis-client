@@ -27,6 +27,10 @@ class Redis {
         return $this->connection->hmRemove($key, $fields);
     }
 
+    public function hmRemoveKey($key) {
+        return $this->connection->hmRemove($key);
+    }
+
     public function hScan($key, $match) {
         return $this->connection->hScan($key, $match);
     }
