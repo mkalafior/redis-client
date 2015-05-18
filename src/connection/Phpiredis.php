@@ -336,7 +336,11 @@ class Phpiredis implements ConnectionInterface
             $this->masterInstances
         );
 
-        $tmp = array('HDEL', $key);
+        if(count($fields)>0){
+            $tmp = array('HDEL', $key);
+        }else{
+            $tmp = array('DEL', $key);
+        }
         while ($r = array_shift($fields)) {
             $tmp[] = $r;
         }
@@ -399,7 +403,6 @@ class Phpiredis implements ConnectionInterface
         return $this->connect($port);
     }
 
-    //todo
     /**
      * @param $key
      * @param $startingPort
@@ -408,6 +411,7 @@ class Phpiredis implements ConnectionInterface
     public function getInstanceBySlotMap($key, $startingPort)
     {
         $slot = $this->getSlot($key);
+        //todo
         $instance = 0;
         return $this->connect($startingPort + $instance);
     }
