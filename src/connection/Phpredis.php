@@ -137,5 +137,9 @@ class Phpredis implements ConnectionInterface
         // TODO: Implement multiCmd() method.
     }
 
+    public function hmRemove($key, array $fields = array())
+    {
+        // TODO: Implement hmRemove() method.
+    }
 
 }

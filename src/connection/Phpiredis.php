@@ -248,7 +248,7 @@ class Phpiredis implements ConnectionInterface
             $msg = explode(" ", $errstr);
             if ($msg[1] === 'MOVED') {
                 $moved = $msg[2];
-            } else {
+            }else {
                 echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
             }
         });
@@ -476,7 +476,6 @@ class Phpiredis implements ConnectionInterface
 
             $instance = $this->getInstanceByPort($moved);
             if ($instance && $value = phpiredis_command_bs($instance, $tmp)) {
-
                 restore_error_handler();
                 return $value;
             }
