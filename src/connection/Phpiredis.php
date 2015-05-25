@@ -58,10 +58,52 @@ class Phpiredis implements ConnectionInterface
 
     /**
      * @param $instance
+     * @param $cmd
+     * @return mixed
+     */
+    private function singleCmd($instance, $cmd)
+    {
+        $moved = false;
+
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
+            restore_error_handler();
+            $msg = explode(" ", $errstr);
+            if ($msg[1] === 'MOVED') {
+                $moved = $msg[2];
+            } else {
+                echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
+                die();
+            }
+        });
+
+        if ($instance && $value = phpiredis_command_bs($instance, $cmd)) {
+            if (isset($value[0])) {
+                $moved = $this->checkIfMoved($value[0]);
+            }
+
+            if (!$moved) {
+                restore_error_handler();
+                return $value;
+            }
+        }
+
+        if ($moved) {
+
+            $instance = $this->getInstanceByPort($moved);
+            if ($instance && $value = phpiredis_command_bs($instance, $cmd)) {
+                restore_error_handler();
+                return $value;
+            }
+
+        }
+    }
+
+    /**
+     * @param $instance
      * @param array $cmdRecs
      * @return mixed
      */
-    private function singleMultiCmd($instance, $cmdRecs = array())
+    private function multiCmdPerInstance($instance, $cmdRecs = array())
     {
         $moved = false;
 
@@ -336,9 +378,9 @@ class Phpiredis implements ConnectionInterface
             $this->masterInstances
         );
 
-        if(count($fields)>0){
+        if (count($fields) > 0) {
             $tmp = array('HDEL', $key);
-        }else{
+        } else {
             $tmp = array('DEL', $key);
         }
         while ($r = array_shift($fields)) {
@@ -480,7 +522,6 @@ class Phpiredis implements ConnectionInterface
 
             $instance = $this->getInstanceByPort($moved);
             if ($instance && $value = phpiredis_command_bs($instance, $tmp)) {
-
                 restore_error_handler();
                 return $value;
             }
@@ -508,7 +549,7 @@ class Phpiredis implements ConnectionInterface
 
         foreach ($instances as $port => $_cmd) {
             $instance = $this->getInstanceByPort($port);
-            $tmp = $this->singleMultiCmd($instance, $_cmd);
+            $tmp = $this->multiCmdPerInstance($instance, $_cmd);
             $values = array_merge($values, $tmp);
         }
 
@@ -525,4 +566,68 @@ class Phpiredis implements ConnectionInterface
             unset(self::$connections[$idx]);
         }
     }
+
+    /**
+     * @param $key
+     * @param $value
+     * @return mixed
+     */
+    public function push($key, $value)
+    {
+        $slot = $this->getSlot($key);
+        $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
+        $instance = $this->getInstanceByPort($port);
+        return $this->singleCmd($instance, array("LPUSH", $key, "" . $value));
+    }
+
+    /**
+     * @param $key
+     * @return mixed
+     */
+    public function pop($key)
+    {
+        $slot = $this->getSlot($key);
+        $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
+        $instance = $this->getInstanceByPort($port);
+        return $this->singleCmd($instance, array("LPOP", $key));
+    }
+
+    /**
+     * @param $key
+     * @param bool $remove
+     * @return mixed
+     */
+    public function getFullList($key, $remove = false)
+    {
+
+        $slot = $this->getSlot($key);
+        $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
+        $instance = $this->getInstanceByPort($port);
+        $values = $this->singleCmd($instance, array("LRANGE", $key, "0", "-1"));
+
+        if ($remove) {
+            $this->singleCmd($instance, array("DEL", $key));
+        }
+
+        return $values;
+
+    }
+
+    /**
+     * @param $key
+     * @param array $list
+     * @return mixed
+     */
+    public function pushFullList($key, array $list)
+    {
+
+        $slot = $this->getSlot($key);
+        $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
+        $instance = $this->getInstanceByPort($port);
+        $values = array_merge(array("LPUSH", $key), $list);
+
+        return $this->singleCmd($instance, $values);
+
+    }
+
 }
