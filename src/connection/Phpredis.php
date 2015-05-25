@@ -142,4 +142,20 @@ class Phpredis implements ConnectionInterface
         // TODO: Implement hmRemove() method.
     }
 
+    public function push($key, $value)
+    {
+        // TODO: Implement push() method.
+    }
+
+    public function pop($key)
+    {
+        // TODO: Implement pop() method.
+    }
+
+    public function getFullList($key)
+    {
+        // TODO: Implement getList() method.
+    }
+
+
 }

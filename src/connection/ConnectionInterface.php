@@ -14,4 +14,8 @@ interface ConnectionInterface {
     public function hScan($key, $match);
     public function getSlot($key);
     public function multiCmd(array $cmd = array());
+    public function push($key, $value);
+    public function pop($key);
+    public function getFullList($key, $remove = false);
+    public function pushFullList($key, array $list);
 }
