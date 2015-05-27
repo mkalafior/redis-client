@@ -32,22 +32,24 @@ class Redis
      * @param $fields
      * @return mixed
      */
-    public function hmRead($key, $fields) {
+    public function hmRead($key, $fields)
+    {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'hmRead');
+            $this->history[] = array('key' => $key, 'method' => 'hmRead', 'arguments' => array($fields));
         }
         return $this->connection->hmRead($key, $fields);
     }
-    
+
     /**
      * @param $key
      * @param $fields
      * @param $values
      * @return mixed
      */
-    public function hmWrite($key, $fields, $values) {
+    public function hmWrite($key, $fields, $values)
+    {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'hmWrite', 'fields' => $fields, 'values' => $values);
+            $this->history[] = array('key' => $key, 'method' => 'hmWrite', 'arguments' => array($fields, $values));
         }
         return $this->connection->hmWrite($key, $fields, $values);
     }
@@ -57,9 +59,10 @@ class Redis
      * @param $fields
      * @return mixed
      */
-    public function hmRemove($key, $fields) {
+    public function hmRemove($key, $fields)
+    {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'hmRemove', 'fields' => $fields);
+            $this->history[] = array('key' => $key, 'method' => 'hmRemove', 'arguments' => array($fields));
         }
         return $this->connection->hmRemove($key, $fields);
     }
@@ -69,7 +72,8 @@ class Redis
      * @param $key
      * @return mixed
      */
-    public function hmRemoveKey($key) {
+    public function hmRemoveKey($key)
+    {
         if ($this->historyStatus) {
             $this->history[] = array('key' => $key, 'method' => 'hmRemoveKey');
         }
@@ -84,7 +88,7 @@ class Redis
     public function hScan($key, $match)
     {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'hScan', 'match' => $match);
+            $this->history[] = array('key' => $key, 'method' => 'hScan', 'arguments' => array($match));
         }
         return $this->connection->hScan($key, $match);
     }
@@ -97,11 +101,11 @@ class Redis
     public function write($key, $value)
     {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'write', 'value' => $value);
+            $this->history[] = array('key' => $key, 'method' => 'write', 'arguments' => array($value));
         }
         return $this->connection->write($key, $value);
     }
-    
+
     /**
      * @param array $cmd
      * @return mixed
@@ -113,17 +117,23 @@ class Redis
                 $cSplit = explode(" ", $c);
                 $method = array_shift($cSplit);
                 $key = array_shift($cSplit);
-                $this->history[] = array('key' => $key, 'method' => $method, "arguments" => $cSplit, "multi" => true);
+                $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($cSplit), 'multiCmd' => true);
             }
         }
         return $this->connection->multiCmd($cmd);
     }
 
+    /**
+     * @return bool
+     */
     public function toggleHistory()
     {
         return $this->historyStatus = !$this->historyStatus;
     }
 
+    /**
+     * @return array
+     */
     public function getCommandHistory()
     {
         return $this->history;
@@ -137,7 +147,7 @@ class Redis
     public function push($key, $value)
     {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'push', 'value' => $value);
+            $this->history[] = array('key' => $key, 'method' => 'push', 'arguments' => array($value));
         }
         return $this->connection->push($key, $value);
     }
@@ -155,8 +165,16 @@ class Redis
     }
 
 
+    /**
+     * @param $key
+     * @param bool $remove
+     * @return mixed
+     */
     public function getFullList($key, $remove = false)
     {
+        if ($this->historyStatus) {
+            $this->history[] = array('key' => $key, 'method' => 'getFullList', 'arguments' => array($remove));
+        }
         return $this->connection->getFullList($key, $remove);
     }
 
@@ -165,7 +183,11 @@ class Redis
      * @param $list
      * @return mixed
      */
-    public function pushFullList($key, $list) {
+    public function pushFullList($key, $list)
+    {
+        if ($this->historyStatus) {
+            $this->history[] = array('key' => $key, 'method' => 'pushFullList', 'arguments' => array($list));
+        }
         return $this->connection->pushFullList($key, $list);
     }
 }
