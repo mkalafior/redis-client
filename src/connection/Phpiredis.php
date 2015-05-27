@@ -63,13 +63,12 @@ class Phpiredis implements ConnectionInterface
      */
     private function singleCmd($instance, $cmd)
     {
-        $moved = false;
 
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
             restore_error_handler();
             $msg = explode(" ", $errstr);
             if ($msg[1] === 'MOVED') {
-                $moved = $msg[2];
+                $ip = $msg[3];
             } else {
                 echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
                 die();
@@ -78,18 +77,19 @@ class Phpiredis implements ConnectionInterface
 
         if ($instance && $value = phpiredis_command_bs($instance, $cmd)) {
             if (isset($value[0])) {
-                $moved = $this->checkIfMoved($value[0]);
+                $ip = $this->checkIfMoved($value[0]);
             }
 
-            if (!$moved) {
+            if (!$ip) {
                 restore_error_handler();
                 return $value;
             }
         }
 
-        if ($moved) {
-
-            $instance = $this->getInstanceByPort($moved);
+        if ($ip) {
+            $parts = explode(":", $ip);
+            $port = array_pop($parts);
+            $instance = $this->getInstanceByPort($port);
             if ($instance && $value = phpiredis_command_bs($instance, $cmd)) {
                 restore_error_handler();
                 return $value;
@@ -105,13 +105,12 @@ class Phpiredis implements ConnectionInterface
      */
     private function multiCmdPerInstance($instance, $cmdRecs = array())
     {
-        $moved = false;
 
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
             restore_error_handler();
             $msg = explode(" ", $errstr);
             if ($msg[1] === 'MOVED') {
-                $moved = $msg[2];
+                $ip = $msg[3];
             } else {
                 echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
                 die();
@@ -137,18 +136,18 @@ class Phpiredis implements ConnectionInterface
 
         if ($instance && $value = phpiredis_multi_command_bs($instance, $cmd)) {
             if (isset($value[0])) {
-                $moved = $this->checkIfMoved($value[0]);
+                $ip = $this->checkIfMoved($value[0]);
             }
 
-            if (!$moved) {
+            if (!$ip) {
                 restore_error_handler();
                 return $sort($value);
             }
         }
 
-        if ($moved) {
+        if ($ip) {
 
-            $instance = $this->getInstanceByPort($moved);
+            $instance = $this->getInstanceByPort($ip);
             if ($instance && $value = phpiredis_multi_command_bs($instance, $cmd)) {
                 restore_error_handler();
                 return $sort($value);
@@ -192,7 +191,6 @@ class Phpiredis implements ConnectionInterface
      */
     public function read($key)
     {
-        $moved = false;
 
         $instance = $this->getInstanceBySlot(
             $this->getSlot($key),
@@ -200,22 +198,25 @@ class Phpiredis implements ConnectionInterface
             $this->masterInstances
         );
 
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
             $msg = explode(" ", $errstr);
             if ($msg[1] === 'MOVED') {
-                $moved = $msg[2];
+                $ip = $msg[3];
             } else {
                 echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
             }
         });
+
         if ($instance && $value = phpiredis_command_bs($instance, array('GET', $key))) {
             restore_error_handler();
             return $value;
         }
 
-        if ($moved) {
+        if ($ip) {
+            $parts = explode(":", $ip);
+            $port = array_pop($parts);
+            $instance = $this->getInstanceByPort($port);
 
-            $instance = $this->getInstanceByPort($moved);
             if ($instance && $value = phpiredis_command_bs($instance, array('GET', $key))) {
                 restore_error_handler();
                 return $value;
@@ -233,16 +234,18 @@ class Phpiredis implements ConnectionInterface
      */
     public function write($key, $value)
     {
+
+        $slot = $this->getSlot($key);
         $instance = $this->getInstanceBySlot(
-            $this->getSlot($key),
+            $slot,
             $this->startingPort,
             $this->masterInstances
         );
 
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
             $msg = explode(" ", $errstr);
             if ($msg[1] === 'MOVED') {
-                $moved = $msg[2];
+                $ip = $msg[3];
             } else {
                 echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
             }
@@ -253,9 +256,10 @@ class Phpiredis implements ConnectionInterface
             return $value;
         }
 
-        if ($moved) {
-
-            $instance = $this->getInstanceByPort($moved);
+        if ($ip) {
+            $parts = explode(":", $ip);
+            $port = array_pop($parts);
+            $instance = $this->getInstanceByPort($port);
             if ($instance && $value = phpiredis_command_bs($instance, array('SET', $key, '' . $value))) {
                 restore_error_handler();
                 return $value;
@@ -273,7 +277,6 @@ class Phpiredis implements ConnectionInterface
      */
     public function hmRead($key, array $fields = array())
     {
-        $moved = false;
 
         $instance = $this->getInstanceBySlot(
             $this->getSlot($key),
@@ -286,10 +289,10 @@ class Phpiredis implements ConnectionInterface
             $tmp[] = $r;
         }
 
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
             $msg = explode(" ", $errstr);
             if ($msg[1] === 'MOVED') {
-                $moved = $msg[2];
+                $ip = $msg[3];
             } else {
                 echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
             }
@@ -299,9 +302,10 @@ class Phpiredis implements ConnectionInterface
             return $value;
         }
 
-        if ($moved) {
-
-            $instance = $this->getInstanceByPort($moved);
+        if ($ip) {
+            $parts = explode(":", $ip);
+            $port = array_pop($parts);
+            $instance = $this->getInstanceByPort($port);
             if ($instance && $value = phpiredis_command_bs($instance, $tmp)) {
                 restore_error_handler();
                 return $value;
@@ -336,10 +340,10 @@ class Phpiredis implements ConnectionInterface
         }
 
 
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
             $msg = explode(" ", $errstr);
             if ($msg[1] === 'MOVED') {
-                $moved = $msg[2];
+                $ip = $msg[3];
             } else {
                 echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
             }
@@ -350,9 +354,10 @@ class Phpiredis implements ConnectionInterface
             return $value;
         }
 
-        if ($moved) {
-
-            $instance = $this->getInstanceByPort($moved);
+        if ($ip) {
+            $parts = explode(":", $ip);
+            $port = array_pop($parts);
+            $instance = $this->getInstanceByPort($port);
             if ($instance && $value = phpiredis_command_bs($instance, $tmp)) {
                 restore_error_handler();
                 return $value;
