@@ -325,8 +325,6 @@ class Phpiredis implements ConnectionInterface
     public function hmWrite($key, array $fields = array(), array $values = array())
     {
 
-        $moved = false;
-
         $instance = $this->getInstanceBySlot(
             $this->getSlot($key),
             $this->startingPort,
@@ -338,7 +336,6 @@ class Phpiredis implements ConnectionInterface
             $tmp[] = $r;
             $tmp[] = array_shift($values);
         }
-
 
         set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
             $msg = explode(" ", $errstr);
