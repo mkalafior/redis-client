@@ -132,11 +132,18 @@ class Redis
     }
 
     /**
+     * @param $clear
      * @return array
      */
-    public function getCommandHistory()
+    public function getCommandHistory($clear = false)
     {
-        return $this->history;
+        if ($clear) {
+            $history = $this->history;
+            $this->history = array();
+        } else {
+            $history = $this->history;
+        }
+        return $history;
     }
 
     /**
