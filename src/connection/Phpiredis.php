@@ -75,14 +75,21 @@ class Phpiredis implements ConnectionInterface
             }
         });
 
-        if ($instance && $value = phpiredis_command_bs($instance, $cmd)) {
-            if (isset($value[0])) {
-                $ip = $this->checkIfMoved($value[0]);
-            }
+        if ($instance) {
 
-            if (!$ip) {
-                restore_error_handler();
-                return $value;
+            $value = phpiredis_command_bs($instance, $cmd);
+
+            if (!is_null($value)) {
+
+                if (isset($value[0])) {
+                    $ip = $this->checkIfMoved($value[0]);
+                }
+
+                if (!$ip) {
+                    restore_error_handler();
+                    return $value;
+                }
+
             }
         }
 
@@ -96,6 +103,9 @@ class Phpiredis implements ConnectionInterface
             }
 
         }
+
+        restore_error_handler();
+        return false;
     }
 
     /**
@@ -154,6 +164,9 @@ class Phpiredis implements ConnectionInterface
             }
 
         }
+
+        restore_error_handler();
+        return false;
     }
 
     /**
@@ -385,6 +398,7 @@ class Phpiredis implements ConnectionInterface
         } else {
             $tmp = array('DEL', $key);
         }
+
         while ($r = array_shift($fields)) {
             $tmp[] = $r;
         }
@@ -397,9 +411,13 @@ class Phpiredis implements ConnectionInterface
                 echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
             }
         });
-        if ($instance && $value = phpiredis_command_bs($instance, $tmp)) {
-            restore_error_handler();
-            return $value;
+
+        if ($instance) {
+            $value = phpiredis_command_bs($instance, $tmp);
+            if (isset($value)) {
+                restore_error_handler();
+                return $value;
+            }
         }
 
         if ($moved) {
