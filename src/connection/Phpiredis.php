@@ -237,6 +237,7 @@ class Phpiredis implements ConnectionInterface
 
         }
 
+        restore_error_handler();
         return false;
     }
 
@@ -280,6 +281,7 @@ class Phpiredis implements ConnectionInterface
 
         }
 
+        restore_error_handler();
         return false;
     }
 
@@ -326,6 +328,7 @@ class Phpiredis implements ConnectionInterface
 
         }
 
+        restore_error_handler();
         return false;
     }
 
@@ -375,6 +378,7 @@ class Phpiredis implements ConnectionInterface
 
         }
 
+        restore_error_handler();
         return false;
     }
 
@@ -430,6 +434,7 @@ class Phpiredis implements ConnectionInterface
 
         }
 
+        restore_error_handler();
         return false;
     }
 
@@ -547,6 +552,9 @@ class Phpiredis implements ConnectionInterface
             }
 
         }
+
+        restore_error_handler();
+        return false;
     }
 
     /**
