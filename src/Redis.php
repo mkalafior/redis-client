@@ -3,13 +3,29 @@ namespace Redis;
 
 use Redis\Connection\ConnectionInterface;
 
+/**
+ * Class Redis
+ * @package Redis
+ */
 class Redis
 {
 
+    /**
+     * @var ConnectionInterface
+     */
     protected $connection;
+    /**
+     * @var bool
+     */
     protected $historyStatus = false;
+    /**
+     * @var array
+     */
     protected $history = array();
 
+    /**
+     * @param ConnectionInterface $connectionStrategy
+     */
     public function __construct(ConnectionInterface $connectionStrategy)
     {
         $this->connection = $connectionStrategy;
@@ -59,7 +75,7 @@ class Redis
      * @param $fields
      * @return mixed
      */
-    public function hmRemove($key, $fields)
+    public function hmRemove($key, $fields = array())
     {
         if ($this->historyStatus) {
             $this->history[] = array('key' => $key, 'method' => 'hmRemove', 'arguments' => array($fields));
@@ -129,6 +145,22 @@ class Redis
     public function toggleHistory()
     {
         return $this->historyStatus = !$this->historyStatus;
+    }
+
+    /**
+     * @return bool
+     */
+    public function turnOnHistory()
+    {
+        return $this->historyStatus = true;
+    }
+
+    /**
+     * @return bool
+     */
+    public function turnOffHistory()
+    {
+        return $this->historyStatus = false;
     }
 
     /**
