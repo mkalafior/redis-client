@@ -197,4 +197,8 @@ class Redis
         }
         return $this->connection->pushFullList($key, $list);
     }
+
+    public function info($section) {
+        return $this->connection->info($section);
+    }
 }
