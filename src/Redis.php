@@ -96,14 +96,15 @@ class Redis
     /**
      * @param $key
      * @param $value
+     * @param $cacheTime
      * @return mixed
      */
-    public function write($key, $value)
+    public function write($key, $value, $cacheTime = false)
     {
         if ($this->historyStatus) {
             $this->history[] = array('key' => $key, 'method' => 'write', 'arguments' => array($value));
         }
-        return $this->connection->write($key, $value);
+        return $this->connection->write($key, $value, $cacheTime);
     }
 
     /**
