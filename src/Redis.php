@@ -118,7 +118,9 @@ class Redis
                 $cSplit = explode(" ", $c);
                 $method = array_shift($cSplit);
                 $key = array_shift($cSplit);
-                $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($cSplit), 'multiCmd' => true);
+                if($this->historyStatus) {
+                    $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($cSplit), 'multiCmd' => true);
+                }
             }
         }
         return $this->connection->multiCmd($cmd);
