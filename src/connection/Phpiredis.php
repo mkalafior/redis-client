@@ -244,9 +244,10 @@ class Phpiredis implements ConnectionInterface
     /**
      * @param $key
      * @param $value
+     * @param $cacheTime
      * @return bool
      */
-    public function write($key, $value)
+    public function write($key, $value, $cacheTime = false)
     {
 
         $slot = $this->getSlot($key);
@@ -265,7 +266,14 @@ class Phpiredis implements ConnectionInterface
             }
         });
 
-        if ($instance && $value = phpiredis_command_bs($instance, array('SET', $key, '' . $value))) {
+        $cmd = array('SET', $key, '' . $value);
+
+        if ($cacheTime) {
+            $cmd[] = 'EX';
+            $cmd[] = '' . $cacheTime;
+        }
+
+        if ($instance && $value = phpiredis_command_bs($instance, $cmd)) {
             restore_error_handler();
             return $value;
         }
@@ -274,7 +282,7 @@ class Phpiredis implements ConnectionInterface
             $parts = explode(":", $ip);
             $port = array_pop($parts);
             $instance = $this->getInstanceByPort($port);
-            if ($instance && $value = phpiredis_command_bs($instance, array('SET', $key, '' . $value))) {
+            if ($instance && $value = phpiredis_command_bs($instance, $cmd)) {
                 restore_error_handler();
                 return $value;
             }
@@ -658,21 +666,25 @@ class Phpiredis implements ConnectionInterface
 
     }
 
-    public function info($section)
+    public function info($section = "")
     {
+        $cmd = array("INFO");
         $info = array();
+
+        if (strlen($section) > 0) {
+            $cmd[1] = " " . $section;
+        }
 
         $port = $this->startingPort;
         $instances = $this->masterInstances;
         $max = $port + $instances;
 
+        $instance = $this->getInstanceByPort($port);
+        $info[$port] = $this->singleCmd($instance, $cmd);
         for (; $port < $max; $port++) {
             $instance = $this->getInstanceByPort($port);
-            $this->singleCmd($instance, "");
-
+            $info[$port] = $this->singleCmd($instance, $cmd);
         }
-
-
 
         return $info;
     }

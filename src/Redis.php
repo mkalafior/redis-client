@@ -112,14 +112,15 @@ class Redis
     /**
      * @param $key
      * @param $value
+     * @param $cacheTime
      * @return mixed
      */
-    public function write($key, $value)
+    public function write($key, $value, $cacheTime = false)
     {
         if ($this->historyStatus) {
             $this->history[] = array('key' => $key, 'method' => 'write', 'arguments' => array($value));
         }
-        return $this->connection->write($key, $value);
+        return $this->connection->write($key, $value, $cacheTime);
     }
 
     /**
@@ -133,7 +134,9 @@ class Redis
                 $cSplit = explode(" ", $c);
                 $method = array_shift($cSplit);
                 $key = array_shift($cSplit);
-                $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($cSplit), 'multiCmd' => true);
+                if($this->historyStatus) {
+                    $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($cSplit), 'multiCmd' => true);
+                }
             }
         }
         return $this->connection->multiCmd($cmd);
@@ -230,8 +233,7 @@ class Redis
         return $this->connection->pushFullList($key, $list);
     }
 
-    public function info($section)
-    {
+    public function info($section = '') {
         return $this->connection->info($section);
     }
 }

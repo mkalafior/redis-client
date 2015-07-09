@@ -7,7 +7,7 @@ interface ConnectionInterface {
     public function connect($port);
     public function getInstanceBySlot($slot, $startingPort, $masterInstances);
     public function read($key);
-    public function write($key, $value);
+    public function write($key, $value, $cacheTime = false);
     public function hmRead($key, array $fields = array());
     public function hmWrite($key, array $fields = array(), array $values = array());
     public function hmRemove($key, array $fields = array());
