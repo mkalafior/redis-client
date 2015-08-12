@@ -51,7 +51,7 @@ class Redis
     public function hmRead($key, $fields)
     {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'hmRead', 'arguments' => array($fields));
+            $this->history[] = array('key' => $key, 'fields' => $fields, 'method' => 'hmRead', 'arguments' => array($fields));
         }
         return $this->connection->hmRead($key, $fields);
     }
@@ -65,7 +65,7 @@ class Redis
     public function hmWrite($key, $fields, $values)
     {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'hmWrite', 'arguments' => array($fields, $values));
+            $this->history[] = array('key' => $key, 'fields' => $fields, 'method' => 'hmWrite', 'arguments' => array($fields, $values));
         }
         return $this->connection->hmWrite($key, $fields, $values);
     }
@@ -78,7 +78,7 @@ class Redis
     public function hmRemove($key, $fields = array())
     {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'hmRemove', 'arguments' => array($fields));
+            $this->history[] = array('key' => $key, 'fields' => $fields, 'method' => 'hmRemove', 'arguments' => array($fields));
         }
         return $this->connection->hmRemove($key, $fields);
     }
