@@ -19,4 +19,5 @@ interface ConnectionInterface {
     public function getFullList($key, $remove = false);
     public function pushFullList($key, array $list);
     public function info($section);
+    public function keys();
 }

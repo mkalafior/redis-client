@@ -689,4 +689,25 @@ class Phpiredis implements ConnectionInterface
         return $info;
     }
 
+    public function keys()
+    {
+        $cmd = array("keys", "*");
+        $info = array();
+
+        $port = $this->startingPort;
+        $instances = $this->masterInstances;
+        $max = $port + $instances;
+
+        $instance = $this->getInstanceByPort($port);
+        $info[$port] = $this->singleCmd($instance, $cmd);
+        for (; $port < $max; $port++) {
+            $instance = $this->getInstanceByPort($port);
+            $info[$port] = $this->singleCmd($instance, $cmd);
+        }
+
+        return $info;
+
+    }
+
+
 }

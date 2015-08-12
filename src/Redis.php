@@ -236,4 +236,8 @@ class Redis
     public function info($section = '') {
         return $this->connection->info($section);
     }
+
+    public function keys($section = '') {
+        return $this->connection->keys($section);
+    }
 }
