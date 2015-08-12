@@ -574,19 +574,18 @@ class Phpiredis implements ConnectionInterface
         $instances = array();
         $values = array();
 
-        $order = 0;
-        foreach ($cmd as $c) {
+        foreach ($cmd as $idx => $c) {
             $key = $c[1];
             $slot = $this->getSlot($key);
             $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
             $instances[$port] = isset($instances[$port]) ? $instances[$port] : array();
-            $instances[$port][] = array('order' => $order++, 'cmd' => $c);
+            $instances[$port][] = array('order' => $idx, 'cmd' => $c);
         }
 
         foreach ($instances as $port => $_cmd) {
             $instance = $this->getInstanceByPort($port);
             $tmp = $this->multiCmdPerInstance($instance, $_cmd);
-            $values = array_merge($values, $tmp);
+            $values = $values + $tmp;
         }
 
         return $values;
