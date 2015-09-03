@@ -37,6 +37,11 @@ class Phpiredis implements ConnectionInterface
     protected $masterInstances;
 
     /**
+     * @var int
+     */
+    protected $slaves;
+
+    /**
      * @param $value
      * @return bool
      */
@@ -173,12 +178,14 @@ class Phpiredis implements ConnectionInterface
      * @param Algorithms\AlgorithmsInterface $hashingInterface
      * @param $startingPort
      * @param $masterInstances
+     * @param $slaves
      */
-    public function __construct(Algorithms\AlgorithmsInterface $hashingInterface, $startingPort, $masterInstances)
+    public function __construct(Algorithms\AlgorithmsInterface $hashingInterface, $startingPort, $masterInstances, $slaves = 0)
     {
         $this->hashingInterface = $hashingInterface;
         $this->startingPort = $startingPort;
         $this->masterInstances = $masterInstances;
+        $this->slaves = $slaves;
     }
 
     /**
@@ -679,6 +686,10 @@ class Phpiredis implements ConnectionInterface
         $port = $this->startingPort;
         $instances = $this->masterInstances;
         $max = $port + $instances;
+
+        if ($this->slaves) {
+            $max += $instances * $this->slaves;
+        }
 
         $instance = $this->getInstanceByPort($port);
         $info[$port] = $this->singleCmd($instance, $cmd);
