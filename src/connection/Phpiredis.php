@@ -397,7 +397,6 @@ class Phpiredis implements ConnectionInterface
      */
     public function hmRemove($key, array $fields = array())
     {
-        $moved = false;
 
         $instance = $this->getInstanceBySlot(
             $this->getSlot($key),
@@ -415,10 +414,10 @@ class Phpiredis implements ConnectionInterface
             $tmp[] = $r;
         }
 
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$moved) {
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
             $msg = explode(" ", $errstr);
             if ($msg[1] === 'MOVED') {
-                $moved = $msg[2];
+                $ip = $msg[3];
             } else {
                 echo "\r\n// " . join(", ", array($errstr, 0, $errno, $errfile, $errline));
             }
@@ -426,16 +425,19 @@ class Phpiredis implements ConnectionInterface
 
         if ($instance) {
             $value = phpiredis_command_bs($instance, $tmp);
-            if (isset($value)) {
+            if (isset($value) && !isset($ip)) {
                 restore_error_handler();
                 return $value;
             }
         }
 
-        if ($moved) {
+        if ($ip) {
 
-            $instance = $this->getInstanceByPort($moved);
-            if ($instance && $value = phpiredis_command_bs($instance, $tmp)) {
+            $parts = explode(":", $ip);
+            $port = array_pop($parts);
+            $instance = $this->getInstanceByPort($port);
+            if ($instance) {
+                $value = phpiredis_command_bs($instance, $tmp);
                 restore_error_handler();
                 return $value;
             }
