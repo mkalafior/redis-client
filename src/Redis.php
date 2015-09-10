@@ -124,6 +124,24 @@ class Redis
     }
 
     /**
+     * @param $cmd
+     * @return mixed
+     */
+    public function singleCmd($cmd)
+    {
+        if ($this->historyStatus) {
+            $cSplit = explode(" ", $cmd);
+            $method = array_shift($cSplit);
+            $key = array_shift($cSplit);
+            if($this->historyStatus) {
+                $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($cSplit), 'multiCmd' => true);
+            }
+            $this->history[] = array('key' => $key, 'method' => 'write', 'arguments' => array($value));
+        }
+        return $this->connection->singleCmd($cmd);
+    }
+
+    /**
      * @param array $cmd
      * @return mixed
      */

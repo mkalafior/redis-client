@@ -45,7 +45,7 @@ class Phpiredis implements ConnectionInterface
      * @param $value
      * @return bool
      */
-    private function checkIfMoved($value)
+    private function _checkIfMoved($value)
     {
         if (!is_string($value)) {
             return false;
@@ -66,7 +66,7 @@ class Phpiredis implements ConnectionInterface
      * @param $cmd
      * @return mixed
      */
-    private function singleCmd($instance, $cmd)
+    private function _singleCmd($instance, $cmd)
     {
 
         set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
@@ -87,7 +87,7 @@ class Phpiredis implements ConnectionInterface
             if (!is_null($value)) {
 
                 if (isset($value[0])) {
-                    $ip = $this->checkIfMoved($value[0]);
+                    $ip = $this->_checkIfMoved($value[0]);
                 }
 
                 if (!$ip) {
@@ -118,7 +118,7 @@ class Phpiredis implements ConnectionInterface
      * @param array $cmdRecs
      * @return mixed
      */
-    private function multiCmdPerInstance($instance, $cmdRecs = array())
+    private function _multiCmdPerInstance($instance, $cmdRecs = array())
     {
 
         set_error_handler(function ($errno, $errstr, $errfile, $errline) use (&$ip) {
@@ -151,7 +151,7 @@ class Phpiredis implements ConnectionInterface
 
         if ($instance && $value = phpiredis_multi_command_bs($instance, $cmd)) {
             if (isset($value[0])) {
-                $ip = $this->checkIfMoved($value[0]);
+                $ip = $this->_checkIfMoved($value[0]);
             }
 
             if (!$ip) {
@@ -172,6 +172,14 @@ class Phpiredis implements ConnectionInterface
 
         restore_error_handler();
         return false;
+    }
+
+    public function singleCmd(array $cmd) {
+        $key = $cmd[1];
+        $slot = $this->getSlot($key);
+        $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
+        $instance = $this->getInstanceByPort($port);
+        return $this->_singleCmd($instance, $cmd);
     }
 
     /**
@@ -551,7 +559,7 @@ class Phpiredis implements ConnectionInterface
         $tmp = array('HSCAN', $key, 'MATCH', $match);
         if ($instance && $value = phpiredis_command_bs($instance, $tmp)) {
             if (isset($value)) {
-                $moved = $this->checkIfMoved($value[0]);
+                $moved = $this->_checkIfMoved($value[0]);
             }
 
             if (!$moved) {
@@ -593,7 +601,7 @@ class Phpiredis implements ConnectionInterface
 
         foreach ($instances as $port => $_cmd) {
             $instance = $this->getInstanceByPort($port);
-            $tmp = $this->multiCmdPerInstance($instance, $_cmd);
+            $tmp = $this->_multiCmdPerInstance($instance, $_cmd);
             $values = $values + $tmp;
         }
 
@@ -621,7 +629,7 @@ class Phpiredis implements ConnectionInterface
         $slot = $this->getSlot($key);
         $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
         $instance = $this->getInstanceByPort($port);
-        return $this->singleCmd($instance, array("LPUSH", $key, "" . $value));
+        return $this->_singleCmd($instance, array("LPUSH", $key, "" . $value));
     }
 
     /**
@@ -633,7 +641,7 @@ class Phpiredis implements ConnectionInterface
         $slot = $this->getSlot($key);
         $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
         $instance = $this->getInstanceByPort($port);
-        return $this->singleCmd($instance, array("LPOP", $key));
+        return $this->_singleCmd($instance, array("LPOP", $key));
     }
 
     /**
@@ -647,10 +655,10 @@ class Phpiredis implements ConnectionInterface
         $slot = $this->getSlot($key);
         $port = $this->getPortBySlot($slot, $this->startingPort, $this->masterInstances);
         $instance = $this->getInstanceByPort($port);
-        $values = $this->singleCmd($instance, array("LRANGE", $key, "0", "-1"));
+        $values = $this->_singleCmd($instance, array("LRANGE", $key, "0", "-1"));
 
         if ($remove) {
-            $this->singleCmd($instance, array("DEL", $key));
+            $this->_singleCmd($instance, array("DEL", $key));
         }
 
         return $values;
@@ -670,7 +678,7 @@ class Phpiredis implements ConnectionInterface
         $instance = $this->getInstanceByPort($port);
         $values = array_merge(array("LPUSH", $key), $list);
 
-        return $this->singleCmd($instance, $values);
+        return $this->_singleCmd($instance, $values);
 
     }
 
@@ -692,10 +700,10 @@ class Phpiredis implements ConnectionInterface
         }
 
         $instance = $this->getInstanceByPort($port);
-        $info[$port] = $this->singleCmd($instance, $cmd);
+        $info[$port] = $this->_singleCmd($instance, $cmd);
         for (; $port < $max; $port++) {
             $instance = $this->getInstanceByPort($port);
-            $info[$port] = $this->singleCmd($instance, $cmd);
+            $info[$port] = $this->_singleCmd($instance, $cmd);
         }
 
         return $info;
@@ -711,15 +719,13 @@ class Phpiredis implements ConnectionInterface
         $max = $port + $instances;
 
         $instance = $this->getInstanceByPort($port);
-        $info[$port] = $this->singleCmd($instance, $cmd);
+        $info[$port] = $this->_singleCmd($instance, $cmd);
         for (; $port < $max; $port++) {
             $instance = $this->getInstanceByPort($port);
-            $info[$port] = $this->singleCmd($instance, $cmd);
+            $info[$port] = $this->_singleCmd($instance, $cmd);
         }
 
         return $info;
 
     }
-
-
 }
