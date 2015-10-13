@@ -136,7 +136,6 @@ class Redis
             if($this->historyStatus) {
                 $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($cSplit), 'multiCmd' => true);
             }
-            $this->history[] = array('key' => $key, 'method' => 'write', 'arguments' => array($value));
         }
         return $this->connection->singleCmd($cmd);
     }
