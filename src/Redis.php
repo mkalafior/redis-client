@@ -130,12 +130,11 @@ class Redis
     public function singleCmd($cmd)
     {
         if ($this->historyStatus) {
-            $cSplit = explode(" ", $cmd);
-            $method = array_shift($cSplit);
-            $key = array_shift($cSplit);
-            if($this->historyStatus) {
-                $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($cSplit), 'multiCmd' => true);
-            }
+            $tmpCmd = $cmd;
+            $method = array_shift($tmpCmd);
+            $key = array_shift($tmpCmd);
+            $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($tmpCmd), 'singleCmd' => true);
+
         }
         return $this->connection->singleCmd($cmd);
     }
@@ -147,12 +146,12 @@ class Redis
     public function multiCmd(array $cmd = array())
     {
         if ($this->historyStatus) {
-            foreach ($cmd as $c) {
-                $cSplit = explode(" ", $c);
-                $method = array_shift($cSplit);
-                $key = array_shift($cSplit);
-                if($this->historyStatus) {
-                    $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($cSplit), 'multiCmd' => true);
+            if ($this->historyStatus) {
+                foreach ($cmd as $c) {
+                    $tmpCmd = $c;
+                    $method = array_shift($tmpCmd);
+                    $key = array_shift($tmpCmd);
+                    $this->history[] = array('key' => $key, 'method' => $method, 'arguments' => array($tmpCmd), 'multiCmd' => true);
                 }
             }
         }
@@ -223,7 +222,6 @@ class Redis
         return $this->connection->pop($key);
     }
 
-
     /**
      * @param $key
      * @param bool $remove
@@ -250,11 +248,13 @@ class Redis
         return $this->connection->pushFullList($key, $list);
     }
 
-    public function info($section = '') {
+    public function info($section = '')
+    {
         return $this->connection->info($section);
     }
 
-    public function keys($section = '') {
-        return $this->connection->keys($section);
+    public function keys()
+    {
+        return $this->connection->keys();
     }
 }
