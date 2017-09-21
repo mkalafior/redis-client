@@ -8,8 +8,6 @@
 
 namespace Redis\Connection;
 
-include_once('ConnectionInterface.php');
-
 use Redis\Algorithms;
 
 class Phpredis implements ConnectionInterface

@@ -1,0 +1,21 @@
+{
+    "name": "mkalafior/redis-client",
+    "description": "A PHP redis client library",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "sebakpl",
+            "email": "sebakpl@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.6",
+        "ext-phpiredis": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Redis\\": "src/"
+        }
+    }
+}

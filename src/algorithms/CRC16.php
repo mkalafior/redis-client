@@ -8,8 +8,6 @@
 
 namespace Redis\Algorithms;
 
-include_once('AlgorithmsInterface.php');
-
 class CRC16 implements AlgorithmsInterface
 {
     private static $CCITT_16 = array(
