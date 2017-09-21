@@ -9,7 +9,6 @@ use Redis\Connection\ConnectionInterface;
  */
 class Redis
 {
-
     /**
      * @var ConnectionInterface
      */

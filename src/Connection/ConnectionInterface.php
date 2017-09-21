@@ -2,7 +2,6 @@
 
 namespace Redis\Connection;
 
-
 interface ConnectionInterface {
     public function connect($port);
     public function getInstanceBySlot($slot, $startingPort, $masterInstances);

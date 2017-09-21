@@ -8,7 +8,6 @@
 
 namespace Redis\Algorithms;
 
-
 interface AlgorithmsInterface
 {
     public static function hash($value);
