@@ -117,7 +117,13 @@ class Redis
     public function write($key, $value, $cacheTime = false)
     {
         if ($this->historyStatus) {
-            $this->history[] = array('key' => $key, 'method' => 'write', 'arguments' => array($value));
+            $arguments = array($value);
+
+            if ($cacheTime) {
+                $arguments += array('EX', $cacheTime);
+            }
+
+            $this->history[] = array('key' => $key, 'method' => 'write', 'arguments' => $arguments);
         }
         return $this->connection->write($key, $value, $cacheTime);
     }
