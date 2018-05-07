@@ -120,7 +120,8 @@ class Redis
             $arguments = array($value);
 
             if ($cacheTime) {
-                $arguments += array('EX', $cacheTime);
+                array_push($arguments, 'EX');
+                array_push($arguments, $cacheTime);
             }
 
             $this->history[] = array('key' => $key, 'method' => 'write', 'arguments' => $arguments);
