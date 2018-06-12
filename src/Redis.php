@@ -250,7 +250,7 @@ class Redis
     {
         if ($this->historyStatus) {
             $this->history[] = array('key' => $key, 'method' => 'del');
-            $this->history[] = array('key' => $key, 'method' => 'lpush', 'values'=>$list);
+            $this->history[] = array('key' => $key, 'method' => 'lpush', 'arguments'=>$list);
         }
         return $this->connection->pushFullList($key, $list);
     }
